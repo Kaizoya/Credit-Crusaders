@@ -1,4 +1,5 @@
 import { getScoreCategory, getScoreColor } from "../../utils/scoreUtils";
+import { useCountUp } from "../../hooks/useCountUp";
 
 interface ScoreGaugeProps {
   score: number;
@@ -31,7 +32,8 @@ function describeArc(cx: number, cy: number, radius: number, startAngle: number,
 
 function ScoreGauge({ score, min = 300, max = 900 }: ScoreGaugeProps) {
   const clamped = Math.max(min, Math.min(max, score));
-  const ratio = (clamped - min) / (max - min);
+  const animatedScore = useCountUp(clamped, { durationMs: 1800, start: 0 });
+  const ratio = Math.max(0, Math.min(1, (animatedScore - min) / (max - min)));
   const angle = -90 + ratio * 180;
   const category = getScoreCategory(score);
   const scoreColor = getScoreColor(score);
@@ -41,7 +43,7 @@ function ScoreGauge({ score, min = 300, max = 900 }: ScoreGaugeProps) {
       <h2 className="text-2xl font-bold text-white">Current Credit Score</h2>
       <p className="mb-4 text-sm text-slate-400">Range {min} - {max}</p>
 
-      <div className="grid gap-6 md:grid-cols-[1.1fr_1fr] md:items-center">
+      <div className="grid gap-6 md:grid-cols-[minmax(0,1fr)_320px] md:items-center">
         <ul className="space-y-2 text-sm text-slate-300">
           {segments.map((segment) => (
             <li key={segment.from} className="flex items-center gap-2">
@@ -54,8 +56,8 @@ function ScoreGauge({ score, min = 300, max = 900 }: ScoreGaugeProps) {
           ))}
         </ul>
 
-        <div className="relative mx-auto -mt-3 h-60 w-full max-w-xs">
-          <svg viewBox="0 0 240 140" className="w-full">
+        <div className="relative mx-auto -mt-3 h-60 w-[300px] max-w-full md:justify-self-center">
+          <svg viewBox="0 0 240 140" className="w-full -translate-y-5">
             {segments.map((segment) => {
               const start = ((segment.from - min) / (max - min)) * 180 - 90;
               const end = ((segment.to - min) / (max - min)) * 180 - 90;
@@ -71,14 +73,14 @@ function ScoreGauge({ score, min = 300, max = 900 }: ScoreGaugeProps) {
               );
             })}
 
-            <g style={{ transformOrigin: "120px 120px", transform: `rotate(${angle}deg)`, transition: "transform 600ms ease" }}>
+            <g style={{ transformOrigin: "120px 120px", transform: `rotate(${angle}deg)` }}>
               <line x1="120" y1="120" x2="120" y2="30" stroke="#9cb8ee" strokeWidth="6" strokeLinecap="round" />
             </g>
             <circle cx="120" cy="120" r="10" fill="#c5d8ff" />
           </svg>
 
-          <div className="absolute inset-x-0 bottom-0 flex flex-col items-center text-center">
-            <p className="text-5xl font-extrabold leading-none text-white">{clamped}</p>
+          <div className="absolute inset-x-0 bottom-1 flex flex-col items-center text-center">
+            <p className="text-5xl font-extrabold leading-none text-white">{Math.round(animatedScore)}</p>
             <p className="text-xl font-semibold leading-tight" style={{ color: scoreColor }}>
               {category}
             </p>

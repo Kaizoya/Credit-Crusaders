@@ -44,9 +44,36 @@ function AppShell({ children }: AppShellProps) {
   const navigate = useNavigate();
   const [profile, setProfile] = useState<SignupProfile | null>(null);
   const [userEmail, setUserEmail] = useState<string>("");
-  const [profileOpen, setProfileOpen] = useState(false);
   const [mobileSidebarOpen, setMobileSidebarOpen] = useState(false);
-  const profileMenuRef = useRef<HTMLDivElement | null>(null);
+  const [sidebarExpanded, setSidebarExpanded] = useState(false);
+  const collapseTimerRef = useRef<number | null>(null);
+
+  const clearCollapseTimer = () => {
+    if (collapseTimerRef.current !== null) {
+      window.clearTimeout(collapseTimerRef.current);
+      collapseTimerRef.current = null;
+    }
+  };
+
+  const handleSidebarHoverStart = () => {
+    clearCollapseTimer();
+    setSidebarExpanded(true);
+  };
+
+  const handleSidebarHoverEnd = () => {
+    clearCollapseTimer();
+    collapseTimerRef.current = window.setTimeout(() => {
+      setSidebarExpanded(false);
+      collapseTimerRef.current = null;
+    }, 180);
+  };
+
+  useEffect(
+    () => () => {
+      clearCollapseTimer();
+    },
+    [],
+  );
 
   useEffect(() => {
     const cacheProfile = (data: SignupProfile) => {
@@ -143,18 +170,6 @@ function AppShell({ children }: AppShellProps) {
     };
   }, []);
 
-  useEffect(() => {
-    const handleOutsideClick = (event: MouseEvent) => {
-      const target = event.target as Node;
-      if (profileMenuRef.current && !profileMenuRef.current.contains(target)) {
-        setProfileOpen(false);
-      }
-    };
-
-    document.addEventListener("mousedown", handleOutsideClick);
-    return () => document.removeEventListener("mousedown", handleOutsideClick);
-  }, []);
-
   const profileEmail = profile?.email || userEmail || "Not available";
   const fallbackName = profileEmail === "Not available" ? "User" : deriveNameFromEmail(profileEmail);
   const firstName = toTitleCase((profile?.firstName ?? "").trim());
@@ -177,120 +192,98 @@ function AppShell({ children }: AppShellProps) {
   }
 
   return (
-    <div className="min-h-screen bg-fintech-gradient p-4 text-slate-100 md:p-6">
-      <div className="fixed left-0 right-0 top-0 z-30 p-4 md:p-6">
-        <div className="mx-auto flex w-full max-w-7xl gap-5">
-          <div className="hidden w-64 shrink-0 lg:block" />
-          <nav className="glass flex-1 rounded-2xl p-4">
-            <div className="flex items-center justify-between gap-3">
-              <div className="flex items-center gap-3">
-                <button
-                  type="button"
-                  onClick={() => setMobileSidebarOpen(true)}
-                  className="flex h-10 w-10 items-center justify-center rounded-xl border border-stroke bg-panel/70 text-white transition hover:border-blueGlow lg:hidden"
-                  aria-label="Open menu"
-                >
-                  <span className="flex flex-col gap-1">
-                    <span className="block h-0.5 w-4 bg-white" />
-                    <span className="block h-0.5 w-4 bg-white" />
-                    <span className="block h-0.5 w-4 bg-white" />
-                  </span>
-                </button>
-                <p className="text-sm font-semibold text-slate-300">Navigation</p>
-              </div>
+    <div className="h-screen overflow-hidden bg-fintech-gradient text-slate-100">
+      <Sidebar
+        expanded={sidebarExpanded}
+        onHoverStart={handleSidebarHoverStart}
+        onHoverEnd={handleSidebarHoverEnd}
+        displayName={displayName}
+        avatarLabel={avatarLabel}
+        profileEmail={profileEmail}
+        profilePhone={profilePhone}
+        profilePan={profilePan}
+        onLogout={handleLogout}
+      />
 
-              <div className="relative" ref={profileMenuRef}>
-                <button
-                  type="button"
-                  onClick={() => setProfileOpen((prev) => !prev)}
-                  className="flex h-10 w-10 items-center justify-center rounded-full border border-stroke bg-panel/70 text-sm font-semibold text-white transition hover:border-blueGlow"
-                  aria-label="Open profile menu"
-                >
-                  {avatarLabel}
-                </button>
+      <button
+        type="button"
+        onClick={() => setMobileSidebarOpen(true)}
+        className="fixed left-4 top-4 z-30 flex h-10 w-10 items-center justify-center rounded-xl border border-stroke bg-panel/80 text-white lg:hidden"
+        aria-label="Open menu"
+      >
+        <span className="flex flex-col gap-1">
+          <span className="block h-0.5 w-4 bg-white" />
+          <span className="block h-0.5 w-4 bg-white" />
+          <span className="block h-0.5 w-4 bg-white" />
+        </span>
+      </button>
 
-                {profileOpen && (
-                  <div className="absolute right-0 z-30 mt-2 w-72 rounded-2xl border border-stroke bg-[#10161f] p-4 shadow-2xl">
-                    <p className="text-base font-semibold text-white">{displayName}</p>
-                    <div className="mt-3 space-y-2 text-sm text-slate-300">
-                      <p>
-                        <span className="text-slate-400">Email:</span> {profileEmail}
-                      </p>
-                      <p>
-                        <span className="text-slate-400">Phone:</span> {profilePhone}
-                      </p>
-                      <p>
-                        <span className="text-slate-400">PAN:</span> {profilePan}
-                      </p>
-                    </div>
-                    <button
-                      type="button"
-                      onClick={handleLogout}
-                      className="mt-4 h-10 w-full rounded-xl border border-rose-500/40 bg-rose-500/10 text-sm font-semibold text-rose-200 transition hover:bg-rose-500/20"
-                    >
-                      Log out
-                    </button>
-                  </div>
-                )}
-              </div>
-            </div>
-          </nav>
-        </div>
-      </div>
-
-      <div className="mx-auto flex w-full max-w-7xl gap-5">
-        <Sidebar />
-        <main className="flex-1 min-w-0 space-y-5 pt-20 md:pt-24">
-
-          {mobileSidebarOpen && (
-            <div className="fixed inset-0 z-40 lg:hidden">
-              <button
-                type="button"
-                aria-label="Close mobile menu backdrop"
-                onClick={() => setMobileSidebarOpen(false)}
-                className="absolute inset-0 bg-black/60"
-              />
-              <aside className="glass absolute inset-y-0 left-0 w-72 rounded-r-2xl p-6 shadow-2xl">
-                <div className="mb-6 flex items-center justify-between">
-                  <div>
-                    <p className="text-xl font-bold text-white">CreditWise</p>
-                    <p className="text-xs text-slate-400">Financial Health</p>
-                  </div>
-                  <button
-                    type="button"
-                    onClick={() => setMobileSidebarOpen(false)}
-                    className="h-9 rounded-lg border border-stroke px-3 text-sm text-slate-200 transition hover:border-blueGlow"
-                  >
-                    Close
-                  </button>
+      <main
+        className={[
+          "h-screen min-w-0 overflow-y-auto px-4 pb-6 pt-16 transition-[padding-left] duration-500 ease-[cubic-bezier(0.22,1,0.36,1)] md:px-6 md:pb-8 md:pt-10 lg:pb-6 lg:pt-6",
+          sidebarExpanded ? "lg:pl-[18rem]" : "lg:pl-[7rem]",
+        ].join(" ")}
+      >
+        {mobileSidebarOpen && (
+          <div className="fixed inset-0 z-40 lg:hidden">
+            <button
+              type="button"
+              aria-label="Close mobile menu backdrop"
+              onClick={() => setMobileSidebarOpen(false)}
+              className="absolute inset-0 bg-black/60"
+            />
+            <aside className="glass absolute inset-y-0 left-0 w-72 rounded-r-2xl p-6 shadow-2xl">
+              <div className="mb-6 flex items-center justify-between">
+                <div>
+                  <p className="text-xl font-bold text-white">CreditWise</p>
+                  <p className="text-xs text-slate-400">Financial Health</p>
                 </div>
+                <button
+                  type="button"
+                  onClick={() => setMobileSidebarOpen(false)}
+                  className="h-9 rounded-lg border border-stroke px-3 text-sm text-slate-200 transition hover:border-blueGlow"
+                >
+                  Close
+                </button>
+              </div>
 
-                <nav className="space-y-2">
-                  {navItems.map((item) => (
-                    <NavLink
-                      key={item.label}
-                      to={item.path}
-                      onClick={() => setMobileSidebarOpen(false)}
-                      className={({ isActive }) =>
-                        [
-                          "block w-full rounded-xl px-4 py-3 text-left text-sm transition",
-                          isActive
-                            ? "bg-blueGlow text-white shadow-lg shadow-blueGlow/30"
-                            : "text-slate-300 hover:bg-slate-800/60",
-                        ].join(" ")
-                      }
-                    >
-                      {item.label}
-                    </NavLink>
-                  ))}
-                </nav>
-              </aside>
-            </div>
-          )}
+              <nav className="space-y-2">
+                {navItems.map((item) => (
+                  <NavLink
+                    key={item.label}
+                    to={item.path}
+                    onClick={() => setMobileSidebarOpen(false)}
+                    className={({ isActive }) =>
+                      [
+                        "block w-full rounded-xl px-4 py-3 text-left text-sm transition",
+                        isActive
+                          ? "bg-blueGlow text-white shadow-lg shadow-blueGlow/30"
+                          : "text-slate-300 hover:bg-slate-800/60",
+                      ].join(" ")
+                    }
+                  >
+                    {item.label}
+                  </NavLink>
+                ))}
+              </nav>
 
-          {children}
-        </main>
-      </div>
+              <div className="mt-6 rounded-xl border border-stroke bg-panel/70 p-3">
+                <p className="text-sm font-semibold text-white">{displayName}</p>
+                <p className="mt-1 text-xs text-slate-400">{profileEmail}</p>
+                <button
+                  type="button"
+                  onClick={handleLogout}
+                  className="mt-3 h-9 w-full rounded-lg border border-rose-500/40 bg-rose-500/10 text-sm font-semibold text-rose-200 transition hover:bg-rose-500/20"
+                >
+                  Log out
+                </button>
+              </div>
+            </aside>
+          </div>
+        )}
+
+        {children}
+      </main>
     </div>
   );
 }
