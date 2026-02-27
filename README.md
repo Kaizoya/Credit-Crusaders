@@ -1,6 +1,6 @@
 # Credit Score Improvement Tracker
 
-<img width="926" height="866" alt="image" src="https://github.com/user-attachments/assets/cb2e675a-e93c-4581-bf14-c651e7d37078" />
+<img width="1853" height="867" alt="image" src="https://github.com/user-attachments/assets/db57e9bf-481b-40d4-af20-2ea8a258c2b3" />
 
 ## Setup
 
